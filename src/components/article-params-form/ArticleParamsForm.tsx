@@ -22,21 +22,32 @@ export const ArticleParamsForm = ({
 }: {
 	saveChanges: (savedState: ArticleStateType) => void;
 }) => {
-	const [isOpen, setIsOpen] = useState(false);
 	const asideDiv = useRef<HTMLDivElement>(null);
+	const [isOpen, setIsOpen] = useState(false);
+	const [articleState, setArticleState] = useState({ ...defaultArticleState });
 
-	const toggleOpen = () => {
-		setIsOpen(!isOpen);
-		asideDiv.current?.classList.toggle(styles.container_open);
+	const overlayClick = (e: MouseEvent) => {
+		const { target } = e;
+		if (!asideDiv.current?.contains(target as Node)) {
+			closeSettings();
+		}
 	};
 
-	const [articleState, setArticleState] = useState({ ...defaultArticleState });
+	const openSettings = () => {
+		asideDiv.current?.classList.add(styles.container_open);
+		setIsOpen(true);
+		document.addEventListener('mousedown', overlayClick);
+	};
+
+	const closeSettings = () => {
+		asideDiv.current?.classList.remove(styles.container_open);
+		setIsOpen(false);
+		document.removeEventListener('mousedown', overlayClick);
+	};
+
 	const getInputChangeHandler = (option: keyof ArticleStateType) => {
 		return (selected: OptionType) => {
-			setArticleState((prevState) => {
-				prevState[option] = selected;
-				return { ...prevState };
-			});
+			setArticleState((prevState) => ({ ...prevState, [option]: selected }));
 		};
 	};
 
@@ -47,14 +58,17 @@ export const ArticleParamsForm = ({
 	const handleSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		saveChanges(articleState);
-		toggleOpen();
+		closeSettings();
 	};
 
 	return (
 		<>
-			<ArrowButton isOpen={isOpen} onClick={toggleOpen} />
+			<ArrowButton isOpen={isOpen} onClick={openSettings} />
 			<aside className={styles.container} ref={asideDiv}>
-				<form className={styles.form} onSubmit={handleSubmit}>
+				<form
+					className={styles.form}
+					onSubmit={handleSubmit}
+					onReset={resetForm}>
 					<Select
 						selected={articleState.fontFamilyOption}
 						options={fontFamilyOptions}
@@ -88,12 +102,7 @@ export const ArticleParamsForm = ({
 						onChange={getInputChangeHandler('contentWidth')}
 					/>
 					<div className={styles.bottomContainer}>
-						<Button
-							title='Сбросить'
-							htmlType='reset'
-							type='clear'
-							onClick={resetForm}
-						/>
+						<Button title='Сбросить' htmlType='reset' type='clear' />
 						<Button title='Применить' htmlType='submit' type='apply' />
 					</div>
 				</form>
